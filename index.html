@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Roofing Company Chatbot</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #f5f5f5;
+        }
+        
+        .chatbot-container {
+            width: 350px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .chatbot-header {
+            background-color: #1a5276;
+            color: white;
+            padding: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .chatbot-body {
+            background-color: white;
+            height: 400px;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .chatbot-messages {
+            flex: 1;
+            padding: 15px;
+            overflow-y: auto;
+        }
+        
+        .message {
+            margin-bottom: 10px;
+            padding: 8px 12px;
+            border-radius: 18px;
+            max-width: 80%;
+            word-wrap: break-word;
+        }
+        
+        .bot-message {
+            background-color: #f1f1f1;
+            align-self: flex-start;
+            border-bottom-left-radius: 5px;
+        }
+        
+        .user-message {
+            background-color: #1a5276;
+            color: white;
+            align-self: flex-end;
+            border-bottom-right-radius: 5px;
+        }
+        
+        .chatbot-input {
+            display: flex;
+            padding: 10px;
+            border-top: 1px solid #ddd;
+        }
+        
+        .chatbot-input input {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 20px;
+            outline: none;
+        }
+        
+        .chatbot-input button {
+            background-color: #1a5276;
+            color: white;
+            border: none;
+            border-radius: 20px;
+            padding: 10px 15px;
+            margin-left: 10px;
+            cursor: pointer;
+        }
+        
+        .typing-indicator {
+            display: inline-block;
+            padding: 8px 12px;
+            background-color: #f1f1f1;
+            border-radius: 18px;
+            border-bottom-left-radius: 5px;
+            margin-bottom: 10px;
+        }
+        
+        .typing-indicator span {
+            height: 8px;
+            width: 8px;
+            background-color: #666;
+            border-radius: 50%;
+            display: inline-block;
+            margin: 0 2px;
+            animation: typing 1s infinite ease-in-out;
+        }
+        
+        .typing-indicator span:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+        
+        .typing-indicator span:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+        
+        @keyframes typing {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-5px); }
+        }
+    </style>
+</head>
+<body>
+    <div class="chatbot-container">
+        <div class="chatbot-header">
+            <h3>Roofing Assistant</h3>
+        </div>
+        <div class="chatbot-body">
+            <div class="chatbot-messages" id="chatbotMessages">
+                <!-- Messages will appear here -->
+            </div>
+            <div class="chatbot-input">
+                <input type="text" id="userInput" placeholder="Type your message...">
+                <button id="sendMessage"><i class="fas fa-paper-plane"></i></button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/js/all.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const chatbotMessages = document.getElementById('chatbotMessages');
+            const userInput = document.getElementById('userInput');
+            const sendMessage = document.getElementById('sendMessage');
+            
+            let conversationState = 'idle'; // 'idle', 'collecting_info', 'service_question', 'estimate_request'
+            let customerInfo = {
+                name: '',
+                email: '',
+                phone: '',
+                serviceInterest: '',
+                urgency: ''
+            };
+            
+            // Start conversation
+            setTimeout(() => {
+                showTypingIndicator();
+                setTimeout(() => {
+                    removeTypingIndicator();
+                    addBotMessage('Hello! I\'m your roofing assistant. How can I help you today?');
+                    addBotMessage('You can ask about our services or request a free estimate.');
+                }, 1500);
+            }, 500);
+            
+            // Send message when button is clicked or Enter is pressed
+            sendMessage.addEventListener('click', handleUserMessage);
+            userInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    handleUserMessage();
+                }
+            });
+            
+            function handleUserMessage() {
+                const message = userInput.value.trim();
+                if (message) {
+                    addUserMessage(message);
+                    userInput.value = '';
+                    processUserMessage(message);
+                }
+            }
+            
+            function addUserMessage(text) {
+                const messageDiv = document.createElement('div');
+                messageDiv.classList.add('message', 'user-message');
+                messageDiv.textContent = text;
+                chatbotMessages.appendChild(messageDiv);
+                scrollToBottom();
+            }
+            
+            function addBotMessage(text) {
+                const messageDiv = document.createElement('div');
+                messageDiv.classList.add('message', 'bot-message');
+                messageDiv.textContent = text;
+                chatbotMessages.appendChild(messageDiv);
+                scrollToBottom();
+            }
+            
+            function showTypingIndicator() {
+                const typingDiv = document.createElement('div');
+                typingDiv.classList.add('typing-indicator');
+                typingDiv.id = 'typingIndicator';
+                typingDiv.innerHTML = '<span></span><span></span><span></span>';
+                chatbotMessages.appendChild(typingDiv);
+                scrollToBottom();
+            }
+            
+            function removeTypingIndicator() {
+                const typingIndicator = document.getElementById('typingIndicator');
+                if (typingIndicator) {
+                    typingIndicator.remove();
+                }
+            }
+            
+            function scrollToBottom() {
+                chatbotMessages.scrollTop = chatbotMessages.scrollHeight;
+            }
+            
+            function processUserMessage(message) {
+                const lowerMessage = message.toLowerCase();
+                
+                showTypingIndicator();
+                
+                setTimeout(() => {
+                    removeTypingIndicator();
+                    
+                    if (conversationState === 'collecting_info') {
+                        handleInfoCollection(message);
+                        return;
+                    }
+                    
+                    if (lowerMessage.includes('hello') || lowerMessage.includes('hi') || lowerMessage.includes('hey')) {
+                        addBotMessage('Hello there! How can I assist you with your roofing needs today?');
+                    } 
+                    else if (lowerMessage.includes('estimate') || lowerMessage.includes('quote') || lowerMessage.includes('price')) {
+                        startEstimateConversation();
+                    }
+                    else if (lowerMessage.includes('service') || lowerMessage.includes('offer') || lowerMessage.includes('do you')) {
+                        askAboutServices();
+                    }
+                    else if (lowerMessage.includes('contact') || lowerMessage.includes('reach') || lowerMessage.includes('call')) {
+                        provideContactInfo();
+                    }
+                    else if (lowerMessage.includes('emergency') || lowerMessage.includes('urgent') || lowerMessage.includes('leak')) {
+                        handleEmergency();
+                    }
+                    else if (lowerMessage.includes('thank') || lowerMessage.includes('thanks')) {
+                        addBotMessage('You\'re welcome! Is there anything else I can help you with?');
+                    }
+                    else {
+                        addBotMessage('I\'m here to help with roofing-related questions. You can ask about:');
+                        addBotMessage('- Getting a free estimate');
+                        addBotMessage('- Our services (installation, repair, maintenance)');
+                        addBotMessage('- Contact information');
+                    }
+                }, 1000 + Math.random() * 1000);
+            }
+            
+            function startEstimateConversation() {
+                conversationState = 'collecting_info';
+                customerInfo = { name: '', email: '', phone: '', serviceInterest: '', urgency: '' };
+                
+                addBotMessage('I\'d be happy to help you get an estimate. First, may I have your name?');
+            }
+            
+            function askAboutServices() {
+                addBotMessage('We offer several roofing services:');
+                addBotMessage('1. Roof Installation (shingles, metal, tile, flat roofs)');
+                addBotMessage('2. Roof Repair (leaks, storm damage, wear and tear)');
+                addBotMessage('3. Roof Maintenance (regular inspections and upkeep)');
+                addBotMessage('Which service are you interested in?');
+                
+                conversationState = 'service_question';
+            }
+            
+            function provideContactInfo() {
+                addBotMessage('You can reach us at:');
+                addBotMessage('📞 Phone: (555) 123-4567');
+                addBotMessage('📧 Email: info@premiumroofing.com');
+                addBotMessage('🏢 Address: 123 Roofing Street, Building City');
+            }
+            
+            function handleEmergency() {
+                addBotMessage('For emergency roof repairs, please call our 24/7 emergency line at (555) 987-6543.');
+                addBotMessage('A team will be dispatched immediately to assess and secure your roof.');
+            }
+            
+            function handleInfoCollection(message) {
+                if (!customerInfo.name) {
+                    customerInfo.name = message;
+                    showTypingIndicator();
+                    setTimeout(() => {
+                        removeTypingIndicator();
+                        addBotMessage(`Nice to meet you, ${message}! What's your email address?`);
+                    }, 1000);
+                }
+                else if (!customerInfo.email) {
+                    if (validateEmail(message)) {
+                        customerInfo.email = message;
+                        showTypingIndicator();
+                        setTimeout(() => {
+                            removeTypingIndicator();
+                            addBotMessage('Great! And what\'s the best phone number to reach you?');
+                        }, 1000);
+                    } else {
+                        addBotMessage('That doesn\'t look like a valid email. Please enter a valid email address.');
+                    }
+                }
+                else if (!customerInfo.phone) {
+                    if (validatePhone(message)) {
+                        customerInfo.phone = message;
+                        showTypingIndicator();
+                        setTimeout(() => {
+                            removeTypingIndicator();
+                            askAboutServiceInterest();
+                        }, 1000);
+                    } else {
+                        addBotMessage('Please enter a valid phone number (e.g., 123-456-7890).');
+                    }
+                }
+                else if (!customerInfo.serviceInterest) {
+                    customerInfo.serviceInterest = message;
+                    showTypingIndicator();
+                    setTimeout(() => {
+                        removeTypingIndicator();
+                        askAboutUrgency();
+                    }, 1000);
+                }
+                else if (!customerInfo.urgency) {
+                    customerInfo.urgency = message;
+                    completeEstimateRequest();
+                }
+            }
+            
+            function askAboutServiceInterest() {
+                addBotMessage('What type of service are you interested in?');
+                addBotMessage('1. New roof installation');
+                addBotMessage('2. Roof repair');
+                addBotMessage('3. Roof maintenance');
+                addBotMessage('4. Not sure (need inspection)');
+            }
+            
+            function askAboutUrgency() {
+                addBotMessage('How soon do you need this service?');
+                addBotMessage('1. Immediately (emergency)');
+                addBotMessage('2. Within the next week');
+                addBotMessage('3. Within the next month');
+                addBotMessage('4. Just researching options');
+            }
+            
+            function completeEstimateRequest() {
+                addBotMessage(`Thank you, ${customerInfo.name}! Here's what I've recorded:`);
+                addBotMessage(`📧 Email: ${customerInfo.email}`);
+                addBotMessage(`📞 Phone: ${customerInfo.phone}`);
+                addBotMessage(`🔧 Service Interest: ${customerInfo.serviceInterest}`);
+                addBotMessage(`⏱ Urgency: ${customerInfo.urgency}`);
+                addBotMessage('Our roofing specialist will contact you within 24 hours to discuss your needs and provide an estimate.');
+                
+                // Save the lead to localStorage
+                saveLead();
+                
+                // Reset conversation state
+                conversationState = 'idle';
+            }
+            
+            function saveLead() {
+                let leads = JSON.parse(localStorage.getItem('roofingLeads')) || [];
+                leads.push({
+                    ...customerInfo,
+                    timestamp: new Date().toISOString()
+                });
+                localStorage.setItem('roofingLeads', JSON.stringify(leads));
+                
+                console.log('Lead saved:', customerInfo);
+            }
+            
+            function validateEmail(email) {
+                const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                return re.test(email);
+            }
+            
+            function validatePhone(phone) {
+                const re = /^[\+]?[(]?[0-9]{3}[)]?[-\s\.]?[0-9]{3}[-\s\.]?[0-9]{4,6}$/im;
+                return re.test(phone);
+            }
+            
+            // Function to view saved leads (for testing)
+            function viewLeads() {
+                const leads = JSON.parse(localStorage.getItem('roofingLeads')) || [];
+                console.log('Saved Leads:', leads);
+                return leads;
+            }
+        });
+    </script>
+</body>
+</html>
