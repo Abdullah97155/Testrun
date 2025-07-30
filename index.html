@@ -1,0 +1,182 @@
+<!DOCTYPE html><html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Roofing Company Chatbot</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #f5f5f5;
+        }
+        .chatbot-container {
+            width: 350px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        .chatbot-header {
+            background-color: #1a5276;
+            color: white;
+            padding: 15px;
+            text-align: center;
+        }
+        .chatbot-body {
+            background-color: white;
+            height: 400px;
+            display: flex;
+            flex-direction: column;
+        }
+        .chatbot-messages {
+            flex: 1;
+            padding: 15px;
+            overflow-y: auto;
+        }
+        .message {
+            margin-bottom: 10px;
+            padding: 8px 12px;
+            border-radius: 18px;
+            max-width: 80%;
+            word-wrap: break-word;
+        }
+        .bot-message {
+            background-color: #f1f1f1;
+            align-self: flex-start;
+        }
+        .user-message {
+            background-color: #1a5276;
+            color: white;
+            align-self: flex-end;
+        }
+        .chatbot-input {
+            display: flex;
+            padding: 10px;
+            border-top: 1px solid #ddd;
+        }
+        .chatbot-input input {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 20px;
+            outline: none;
+        }
+        .chatbot-input button {
+            background-color: #1a5276;
+            color: white;
+            border: none;
+            border-radius: 20px;
+            padding: 10px 15px;
+            margin-left: 10px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+<div class="chatbot-container">
+    <div class="chatbot-header">
+        <h3>Roofing Assistant</h3>
+    </div>
+    <div class="chatbot-body">
+        <div class="chatbot-messages" id="chatbotMessages"></div>
+        <div class="chatbot-input">
+            <input type="text" id="userInput" placeholder="Type your message...">
+            <button id="sendMessage">Send</button>
+        </div>
+    </div>
+</div><script>
+const chatbotMessages = document.getElementById('chatbotMessages');
+const userInput = document.getElementById('userInput');
+const sendMessage = document.getElementById('sendMessage');
+
+let step = 0;
+let customerInfo = {
+    name: '',
+    email: '',
+    phone: '',
+    service: '',
+    urgency: ''
+};
+
+function addMessage(text, sender = 'bot') {
+    const msg = document.createElement('div');
+    msg.className = 'message ' + (sender === 'user' ? 'user-message' : 'bot-message');
+    msg.innerText = text;
+    chatbotMessages.appendChild(msg);
+    chatbotMessages.scrollTop = chatbotMessages.scrollHeight;
+}
+
+function sendToTelegram(data) {
+    const botToken = '8430303546:AAGiDuA3R53y_J0yFigXz4_vZ7lzhWz1ylA';
+    const chatId = '7789224631';
+    const message = `New Lead:\nName: ${data.name}\nEmail: ${data.email}\nPhone: ${data.phone}\nService: ${data.service}\nUrgency: ${data.urgency}`;
+
+    fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            chat_id: chatId,
+            text: message
+        })
+    })
+    .then(res => res.json())
+    .then(data => console.log('Telegram response:', data))
+    .catch(err => console.error('Telegram error:', err));
+}
+
+function processInput(input) {
+    switch(step) {
+        case 0:
+            customerInfo.name = input;
+            addMessage("Great! What's your email address?");
+            step++;
+            break;
+        case 1:
+            customerInfo.email = input;
+            addMessage("Got it. What's your phone number?");
+            step++;
+            break;
+        case 2:
+            customerInfo.phone = input;
+            addMessage("What service are you interested in?");
+            step++;
+            break;
+        case 3:
+            customerInfo.service = input;
+            addMessage("And finally, how urgent is it?");
+            step++;
+            break;
+        case 4:
+            customerInfo.urgency = input;
+            addMessage("Thanks! We will contact you shortly.");
+            sendToTelegram(customerInfo);
+            step++;
+            break;
+        default:
+            addMessage("Would you like to provide another estimate?");
+            step = 0;
+            break;
+    }
+}
+
+sendMessage.addEventListener('click', () => {
+    const input = userInput.value.trim();
+    if (!input) return;
+    addMessage(input, 'user');
+    userInput.value = '';
+    processInput(input);
+});
+
+userInput.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') sendMessage.click();
+});
+
+window.onload = () => {
+    addMessage("Hello! I'm your roofing assistant. What's your name?");
+};
+</script></body>
+</html>
